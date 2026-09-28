@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Compression Test Simulation | Universal Testing Machine Laboratory</title>
+  <meta name="description" content="High-fidelity interactive 3D simulation of a Universal Testing Machine (UTM) compression test. Procedural specimen loading, real-time stress-strain plotting, Vernier caliper metrology, ductile barrelling and brittle shear fracture.">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/three.module.js",
+      "three/addons/": "./vendor/three/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="lab-navbar">
+      <div class="nav-brand">
+        <span class="brand-icon">🔬</span>
+        <div>
+          <h1 class="brand-title">UNIVERSAL TESTING MACHINE (UTM) • COMPRESSION LAB</h1>
+        </div>
+        <span class="brand-badge">ASTM E9 / ISO 13314</span>
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="nav-mode-tabs">
+        <button class="mode-tab active" data-mode="guided" id="tab-mode-guided">📋 Guided Lab Protocol</button>
+        <button class="mode-tab" data-mode="free" id="tab-mode-free">🧪 Free Exploration Mode</button>
+        <button class="mode-tab" data-mode="quiz" id="tab-mode-quiz">📝 Knowledge Assessment</button>
+      </div>
+
+      <!-- Navigation Utility Actions -->
+      <div class="nav-actions">
+        <button id="btn-toggle-heatmap" class="btn-toggle-badge" title="Toggle Von Mises Stress Heatmap">🌡️ Stress Heatmap</button>
+        <button id="btn-toggle-truestress" class="btn-toggle-badge" title="Overlay True Stress-Strain Curve">📈 True Stress Overlay</button>
+        <button id="btn-toggle-mute" class="btn-toggle-badge" title="Mute/Unmute Audio">🔊</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      
+      <!-- Left Sidebar: Procedural Protocol Wizard -->
+      <aside class="wizard-sidebar" id="wizard-sidebar">
+        <div class="sidebar-header">
+          <div class="wizard-status-banner">
+            <span class="pulse-dot"></span>
+            <span class="banner-text" id="wizard-banner-msg">Step 1: Select Material Specimen</span>
+          </div>
+        </div>
+
+        <div class="steps-container">
+          
+          <!-- Step 1: Material Selection -->
+          <div class="step-card active" id="step-card-1">
+            <div class="step-header">
+              <span class="step-number">STEP 01</span>
+              <span class="badge info">Material Prep</span>
+            </div>
+            <h3 class="step-title">Select Test Specimen</h3>
+            <p class="step-desc">Choose from engineering materials with distinct ductile or brittle failure behaviors.</p>
+            
+            <div class="step-action-panel" id="step-action-panel-1">
+              <div class="select-wrapper">
+                <select id="material-select" class="form-select">
+                  <option value="mild_steel" selected>Mild Steel (AISI 1018) — Ductile Barrelling</option>
+                  <option value="cast_iron">Grey Cast Iron (ASTM Class 35) — Brittle Shear 52°</option>
+                  <option value="concrete">High-Strength Concrete (M40) — Crushing & Spalling</option>
+                  <option value="timber">Hardwood Oak (Parallel to Grain) — Fiber Buckling</option>
+                  <option value="aluminium">Aluminium Alloy 6061-T6 — Ductile Flow</option>
+                </select>
+              </div>
+
+              <!-- Material quick overview -->
+              <div class="reading-msg">
+                <strong id="disp-mat-title">Mild Steel (AISI 1018)</strong>: <span id="disp-mat-desc">Ductile carbon steel with pronounced barrelling under compression without brittle fracture.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Clean Platens -->
+          <div class="step-card" id="step-card-2">
+            <div class="step-header">
+              <span class="step-number">STEP 02</span>
+              <span class="badge">Surface Prep</span>
+            </div>
+            <h3 class="step-title">Clean Machine Platens</h3>
+            <p class="step-desc">Degrease and wipe the hardened compression platens to eliminate abrasive grit.</p>
+            <div class="step-action-panel" id="step-action-panel-2" style="display: none;">
+              <button id="btn-clean-platens" class="btn-primary btn-block">🧹 Clean Platens with Degreaser</button>
+            </div>
+          </div>
+
+          <!-- Step 3: Vernier Caliper Metrology -->
+          <div class="step-card" id="step-card-3">
+            <div class="step-header">
+              <span class="step-number">STEP 03</span>
+              <span class="badge">Metrology</span>
+            </div>
+            <h3 class="step-title">Measure Initial Dimensions</h3>
+            <p class="step-desc">Use the 0.02 mm virtual Vernier Caliper to measure initial height (h₀) and diameter (d₀).</p>
+            <div class="step-action-panel" id="step-action-panel-3" style="display: none;">
+              <button id="btn-open-caliper" class="btn-primary btn-block">📐 Launch Vernier Caliper Station</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Mount & Center Specimen -->
+          <div class="step-card" id="step-card-4">
+            <div class="step-header">
+              <span class="step-number">STEP 04</span>
+              <span class="badge">Centering</span>
+            </div>
+            <h3 class="step-title">Mount Specimen on Lower Platen</h3>
+            <p class="step-desc">Align cylinder on concentric alignment grooves to eliminate eccentric bending.</p>
+            <div class="step-action-panel" id="step-action-panel-4" style="display: none;">
+              <button id="btn-place-specimen" class="btn-primary btn-block">🎯 Place & Align Concentric Rings</button>
+            </div>
+          </div>
+
+          <!-- Step 5: Jog Crosshead & Platen Seating -->
+          <div class="step-card" id="step-card-5">
+            <div class="step-header">
+              <span class="step-number">STEP 05</span>
+              <span class="badge">Seating</span>
+            </div>
+            <h3 class="step-title">Seat Upper Compression Platen</h3>
+            <p class="step-desc">Lower the upper crosshead until the spherical platen touches the top face (zero clearance).</p>
+            <div class="step-action-panel" id="step-action-panel-5" style="display: none;">
+              <div class="btn-grid-2" style="margin-bottom: 6px;">
+                <button id="btn-jog-down" class="btn-secondary">⬇ Jog Down (-1mm)</button>
+                <button id="btn-jog-up" class="btn-secondary">⬆ Jog Up (+1mm)</button>
+              </div>
+              <button id="btn-auto-seat" class="btn-primary btn-block">🧲 Auto-Seat Upper Platen (Touch Contact)</button>
+            </div>
+          </div>
+
+          <!-- Step 6: Safety Shield & Supervisor Green-Light -->
+          <div class="step-card" id="step-card-6">
+            <div class="step-header">
+              <span class="step-number">STEP 06</span>
+              <span class="badge danger">Safety Protocol</span>
+            </div>
+            <h3 class="step-title">Supervisor Safety Green-Light</h3>
+            <p class="step-desc">Slide blast shield closed and obtain Supervisor digital verification to unlock hydraulic pump.</p>
+            <div class="step-action-panel" id="step-action-panel-6" style="display: none;">
+              <button id="btn-toggle-shield" class="btn-secondary btn-block" style="margin-bottom: 6px;">🔒 Slide Shield Closed</button>
+              <button id="btn-open-safety" class="btn-primary btn-block">👨‍🏫 Open Supervisor Safety Portal</button>
+            </div>
+          </div>
+
+          <!-- Step 7: Tare Gauges -->
+          <div class="step-card" id="step-card-7">
+            <div class="step-header">
+              <span class="step-number">STEP 07</span>
+              <span class="badge">Calibration</span>
+            </div>
+            <h3 class="step-title">Zero Load Cell & Dial Gauge</h3>
+            <p class="step-desc">Tare digital readouts and reset analog dial peak follower needle.</p>
+            <div class="step-action-panel" id="step-action-panel-7" style="display: none;">
+              <button id="btn-tare-gauges" class="btn-primary btn-block">⚖️ Tare Load Cell & Zero Dial Gauge</button>
+            </div>
+          </div>
+
+          <!-- Step 8: Hydraulic Compression Loading -->
+          <div class="step-card" id="step-card-8">
+            <div class="step-header">
+              <span class="step-number">STEP 08</span>
+              <span class="badge success">Active Test</span>
+            </div>
+            <h3 class="step-title">Apply Compressive Load</h3>
+            <p class="step-desc">Enter compressive load (kN) manually or run automated continuous hydraulic testing.</p>
+            <div class="step-action-panel" id="step-action-panel-8" style="display: none;">
+              <!-- Loading Mode Selector -->
+              <div class="loading-mode-pill-group" style="display: flex; gap: 4px; margin-bottom: 8px;">
+                <button id="btn-mode-manual-load" class="pill-btn active" style="flex: 1; font-size: 10px;">🕹️ Manual Load</button>
+                <button id="btn-mode-auto-load" class="pill-btn" style="flex: 1; font-size: 10px;">⚡ Auto Motor</button>
+              </div>
+
+              <!-- Manual Load Input Panel -->
+              <div id="manual-load-controls-panel" style="display: block;">
+                <label style="font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;">Manual Compressive Load (P):</label>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                  <input type="number" id="manual-load-input" class="form-select" min="0" max="1000" step="0.5" value="0.0" placeholder="0.0 kN" style="flex: 1; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--accent-cyan);">
+                  <button id="btn-apply-manual-load" class="btn-primary" style="padding: 8px 14px;">Apply</button>
+                </div>
+
+                <!-- Load Step Buttons -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px;">
+                  <button class="btn-micro load-step-btn" data-step="5">+5 kN</button>
+                  <button class="btn-micro load-step-btn" data-step="10">+10 kN</button>
+                  <button class="btn-micro load-step-btn" data-step="25">+25 kN</button>
+                  <button class="btn-micro load-step-btn" data-step="50">+50 kN</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
+                  <button class="btn-micro load-step-btn" data-step="100">+100 kN (High Load)</button>
+                  <button class="btn-micro load-step-btn" data-step="-10" style="color: var(--accent-yellow);">-10 kN (Unload)</button>
+                </div>
+
+                <!-- Manual Slider -->
+                <div style="margin-top: 6px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-bottom: 2px;">
+                    <span>0 kN</span>
+                    <span>Manual Load Dial Slider</span>
+                    <span>1000 kN</span>
+                  </div>
+                  <input type="range" id="manual-load-slider" min="0" max="250" step="0.5" value="0" style="width: 100%; accent-color: var(--accent-cyan);">
+                </div>
+              </div>
+
+              <!-- Auto Load Panel -->
+              <div id="auto-load-controls-panel" style="display: none;">
+                <label style="font-size: 11px; color: var(--text-dim);">Displacement Rate:</label>
+                <select id="crosshead-speed-select" class="form-select" style="margin-top: 4px;">
+                  <option value="0.5">0.5 mm/min (High Precision)</option>
+                  <option value="1.0" selected>1.0 mm/min (Standard ASTM E9)</option>
+                  <option value="2.0">2.0 mm/min (Accelerated)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- Center: 3D Interactive Lab Viewport -->
+      <section class="center-viewport">
+        <!-- Three.js Canvas Container -->
+        <div id="viewport-3d-container"></div>
+
+        <!-- Floating Camera Presets Toolbar -->
+        <div class="camera-toolbar">
+          <button class="cam-btn active" data-cam="overview">👁️ Overview</button>
+          <button class="cam-btn" data-cam="specimen">🔍 Specimen Focus</button>
+          <button class="cam-btn" data-cam="dial">⏱️ Dial Gauge</button>
+          <button class="cam-btn" data-cam="caliper">📐 Caliper Bench</button>
+          <button class="cam-btn" data-cam="console">💻 Telemetry Desk</button>
+          <button class="cam-btn" data-cam="top">🔝 Top View</button>
+          <button class="cam-btn" id="btn-toggle-autorotate" title="Toggle 360° Smooth Machine Auto-Rotation">🔄 360° Orbit</button>
+        </div>
+
+        <!-- Viewport Controls & Status Badges -->
+        <div class="viewport-toggles">
+          <button id="btn-open-notebook" class="btn-toggle-badge">📓 Virtual Lab Notebook</button>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Live Telemetry HUD, Chart & Machine Controls -->
+      <aside class="telemetry-sidebar">
+        
+        <!-- Digital Gauges Cluster -->
+        <div class="gauge-cluster">
+          <div class="gauge-tile highlight">
+            <span class="gauge-label">Compressive Load (P)</span>
+            <span class="gauge-val" id="hud-load-val">0.00 kN</span>
+          </div>
+          <div class="gauge-tile">
+            <span class="gauge-label">Displacement (ΔL)</span>
+            <span class="gauge-val" id="hud-disp-val">0.000 mm</span>
+          </div>
+          <div class="gauge-tile highlight">
+            <span class="gauge-label">Engineering Stress (σ)</span>
+            <span class="gauge-val" id="hud-stress-val">0.0 MPa</span>
+          </div>
+          <div class="gauge-tile">
+            <span class="gauge-label">Engineering Strain (ε)</span>
+            <span class="gauge-val" id="hud-strain-val">0.00%</span>
+          </div>
+          <div class="gauge-tile">
+            <span class="gauge-label">Peak Load Registered</span>
+            <span class="gauge-val" id="hud-peak-val">0.00 kN</span>
+          </div>
+          <div class="gauge-tile">
+            <span class="gauge-label">Initial Area (A₀)</span>
+            <span class="gauge-val" id="hud-a0-val">176.71 mm²</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Stress-Strain Canvas Chart Section -->
+        <div class="chart-section">
+          <div class="chart-header">
+            <span class="chart-title">📊 Live Stress (σ) vs. Strain (ε) Plot</span>
+            <button id="btn-capture-point" class="btn-micro primary" title="Capture instantaneous data point into log">📸 Capture Point</button>
+          </div>
+          <div class="chart-container-box">
+            <canvas id="stress-strain-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- UTM Machine Control Panel -->
+        <div class="control-panel-footer">
+          <button id="btn-start-test" class="btn-primary" disabled>
+            ⚡ Start Compressive Loading
+          </button>
+          <div class="btn-grid-2">
+            <button id="btn-pause-test" class="btn-secondary" disabled>⏸ Pause Test</button>
+            <button id="btn-estop" class="btn-estop" disabled>🛑 EMERGENCY STOP</button>
+          </div>
+          <button id="btn-reset-all" class="btn-secondary" style="font-size: 11px;">🔄 Reset Machine & Specimen</button>
+        </div>
+
+      </aside>
+    </main>
+  </div>
+
+  <!-- Interactive Vernier Caliper Modal Component -->
+  <div id="caliper-modal" class="modal-overlay"></div>
+
+  <!-- Collaborative Safety Check & Supervisor Modal -->
+  <div id="safety-modal" class="modal-overlay"></div>
+
+  <!-- Virtual Lab Notebook Modal -->
+  <div id="notebook-modal" class="modal-overlay"></div>
+
+  <!-- Printable ASTM E9 Formal Test Report Modal -->
+  <div id="report-modal" class="modal-overlay"></div>
+
+  <!-- Metallurgy Assessment & Knowledge Quiz Modal -->
+  <div id="quiz-modal" class="modal-overlay">
+    <div class="quiz-backdrop"></div>
+    <div class="quiz-dialog">
+      <div class="caliper-header">
+        <div class="caliper-title-group">
+          <span class="caliper-icon">📝</span>
+          <div>
+            <h3>Metallurgy & Mechanical Compression Assessment</h3>
+            <p class="caliper-subtitle">ASTM E9 / ISO 13314 Mechanical Metallurgy Certification Quiz</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="document.getElementById('quiz-modal').style.display='none'">&times;</button>
+      </div>
+
+      <div class="caliper-body">
+        <div class="quiz-card" style="background: rgba(30, 41, 59, 0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+          <p style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">1. Why does a ductile cylindrical specimen (like Mild Steel) exhibit the "barrelling" (bulging) effect during compression?</p>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q1" value="a"> A) Due to thermal heating during plastic deformation.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q1" value="b"> B) Friction between the machine platens and specimen ends restrains lateral expansion at the contact surfaces.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q1" value="c"> C) Necking occurs in compression just like in tensile testing.</label>
+        </div>
+
+        <div class="quiz-card" style="background: rgba(30, 41, 59, 0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+          <p style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">2. Why does Grey Cast Iron fracture along an oblique plane at approximately 50°–55° to the compressive loading axis?</p>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q2" value="a"> A) It fails under pure tensile cleavage.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q2" value="b"> B) The graphite flakes evaporate under high load.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q2" value="c"> C) Maximum shear stress overcomes internal friction on the oblique slip plane (Mohr-Coulomb criterion).</label>
+        </div>
+
+        <div class="quiz-card" style="background: rgba(30, 41, 59, 0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+          <p style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">3. In compression testing, how does True Stress (σ_true) compare to Engineering Stress (σ_eng)?</p>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q3" value="a"> A) True stress is lower than engineering stress because instantaneous cross-sectional area increases under compression.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q3" value="b"> B) True stress is always higher in compression than engineering stress.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q3" value="c"> C) True stress and engineering stress are always identical.</label>
+        </div>
+
+        <div class="quiz-card" style="background: rgba(30, 41, 59, 0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+          <p style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">4. What is the critical purpose of laser-etched concentric alignment rings on the lower platen?</p>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q4" value="d"> D) To ensure geometric axial centering and prevent eccentric bending moments from distorting the stress state.</label>
+          <label style="display: block; font-size: 11px; margin-bottom: 4px;"><input type="radio" name="q4" value="b"> B) To measure specimen weight.</label>
+        </div>
+
+        <div id="quiz-results-box"></div>
+
+        <button id="btn-submit-quiz" class="btn-success btn-block" style="margin-top: 8px;">Submit Assessment for Grading</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Entry Point -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
